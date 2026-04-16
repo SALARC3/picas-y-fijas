@@ -7,6 +7,8 @@ import { FileSystemPlayerRepository } from '../../../player/infrastructure/outpu
 import { FileSystemTriviaRepository } from '../../../trivia/infrastructure/output/FileSystemTriviaRepository';
 import { UuidV4IdProvider } from '../../../shared/infrastructure/output/UuidV4IdProvider';
 import { SECRET_NUMBER_DIGITS } from '../../../trivia/domain/GameRules';
+import { GetOrCreatePlayer } from '../../../player/application/use-cases/GetOrCreatePlayer';
+import { CreateTrivia } from '../../../trivia/application/use-cases/CreateTrivia';
 
 export class ConsoleGameAdapter {
     private readonly rl: readline.Interface;
@@ -25,7 +27,9 @@ export class ConsoleGameAdapter {
         const triviaRepo = new FileSystemTriviaRepository('./data/trivias');
         const idProvider = new UuidV4IdProvider();
 
-        this.startGame = new StartSinglePlayerGame(gameRepo, playerRepo, triviaRepo, idProvider);
+        const getOrCreatePlayer = new GetOrCreatePlayer(playerRepo, idProvider);
+        const createTrivia = new CreateTrivia(triviaRepo, idProvider);
+        this.startGame = new StartSinglePlayerGame(gameRepo, getOrCreatePlayer, createTrivia, idProvider);
         this.makeGuess = new MakeGuessInGame(gameRepo, triviaRepo);
     }
 

@@ -5,6 +5,8 @@ import { LocalStoragePlayerRepository } from '../../../player/infrastructure/out
 import { LocalStorageTriviaRepository } from '../../../trivia/infrastructure/output/LocalStorageTriviaRepository';
 import { UuidV4IdProvider } from '../../../shared/infrastructure/output/UuidV4IdProvider';
 import { SinglePlayerGameDTO } from '../../application/dto/SinglePlayerGameDTO';
+import { GetOrCreatePlayer } from '../../../player/application/use-cases/GetOrCreatePlayer';
+import { CreateTrivia } from '../../../trivia/application/use-cases/CreateTrivia';
 
 declare global {
     // eslint-disable-next-line no-var
@@ -19,7 +21,9 @@ const playerRepo = new LocalStoragePlayerRepository();
 const triviaRepo = new LocalStorageTriviaRepository();
 const gameRepo = new LocalStorageSinglePlayerGameRepository();
 
-const startGameUseCase = new StartSinglePlayerGame(gameRepo, playerRepo, triviaRepo, idProvider);
+const getOrCreatePlayer = new GetOrCreatePlayer(playerRepo, idProvider);
+const createTrivia = new CreateTrivia(triviaRepo, idProvider);
+const startGameUseCase = new StartSinglePlayerGame(gameRepo, getOrCreatePlayer, createTrivia, idProvider);
 const makeGuessUseCase = new MakeGuessInGame(gameRepo, triviaRepo);
 
 export async function startGame(nickname: string): Promise<SinglePlayerGameDTO> {
