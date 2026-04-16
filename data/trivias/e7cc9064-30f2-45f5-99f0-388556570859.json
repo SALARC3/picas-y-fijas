@@ -1,0 +1,51 @@
+{
+  "id": "e7cc9064-30f2-45f5-99f0-388556570859",
+  "secretNumber": "7109",
+  "guesses": [
+    {
+      "guess": "1234",
+      "picas": 1,
+      "fijas": 0
+    },
+    {
+      "guess": "5678",
+      "picas": 1,
+      "fijas": 0
+    },
+    {
+      "guess": "9012",
+      "picas": 3,
+      "fijas": 0
+    },
+    {
+      "guess": "3456",
+      "picas": 0,
+      "fijas": 0
+    },
+    {
+      "guess": "9013",
+      "picas": 3,
+      "fijas": 0
+    },
+    {
+      "guess": "1097",
+      "picas": 4,
+      "fijas": 0
+    },
+    {
+      "guess": "7901",
+      "picas": 2,
+      "fijas": 2
+    },
+    {
+      "guess": "7910",
+      "picas": 3,
+      "fijas": 1
+    },
+    {
+      "guess": "7109",
+      "picas": 0,
+      "fijas": 4
+    }
+  ]
+}

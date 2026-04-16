@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Picas y Fijas</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 420px;
+            padding: 2rem;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #38bdf8;
+        }
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        .card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 0.4rem;
+        }
+        input {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            background: #0f172a;
+            color: #e2e8f0;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus { border-color: #38bdf8; }
+        input::placeholder { color: #475569; }
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 0.8rem;
+        }
+        .btn-primary { background: #38bdf8; color: #0f172a; }
+        .btn-primary:hover { background: #7dd3fc; }
+        .btn-primary:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+        .btn-secondary { background: #334155; color: #e2e8f0; }
+        .btn-secondary:hover { background: #475569; }
+        .error {
+            color: #f87171;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+        .info-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .player-name { color: #38bdf8; font-weight: 600; }
+        .attempt-count { color: #94a3b8; font-size: 0.85rem; }
+        .guess-list {
+            max-height: 320px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+        }
+        .guess-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.6rem 0.8rem;
+            border-radius: 8px;
+            margin-bottom: 0.4rem;
+            background: #0f172a;
+        }
+        .guess-number {
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 0.3rem;
+        }
+        .guess-result {
+            display: flex;
+            gap: 0.8rem;
+        }
+        .picas, .fijas {
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+        }
+        .picas { background: #854d0e; color: #fde047; }
+        .fijas { background: #166534; color: #4ade80; }
+        .win-banner {
+            text-align: center;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #166534, #15803d);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+        .win-banner h2 { color: #4ade80; margin-bottom: 0.5rem; }
+        .win-banner p { color: #bbf7d0; }
+        .hidden { display: none; }
+        .digit-inputs {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+        }
+        .digit-input {
+            width: 3.5rem;
+            height: 3.5rem;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Picas y Fijas</h1>
+        <p class="subtitle">Adivina el número secreto de 4 dígitos únicos</p>
+
+        <!-- Pantalla de inicio -->
+        <div id="start-screen">
+            <div class="card">
+                <label for="nickname">Nickname</label>
+                <input type="text" id="nickname" placeholder="Ingresa tu nickname" maxlength="20" autofocus>
+                <div id="start-error" class="error hidden"></div>
+                <button id="start-btn" class="btn-primary">Jugar</button>
+            </div>
+        </div>
+
+        <!-- Pantalla de juego -->
+        <div id="game-screen" class="hidden">
+            <div class="info-bar">
+                <span class="player-name" id="player-name"></span>
+                <span class="attempt-count" id="attempt-count">0 intentos</span>
+            </div>
+
+            <div id="win-banner" class="win-banner hidden">
+                <h2>¡Felicidades!</h2>
+                <p id="win-message"></p>
+            </div>
+
+            <div class="card" id="guess-form-card">
+                <label>Tu intento</label>
+                <div class="digit-inputs">
+                    <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="0">
+                    <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="1">
+                    <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="2">
+                    <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="3">
+                </div>
+                <div id="guess-error" class="error hidden"></div>
+                <button id="guess-btn" class="btn-primary">Adivinar</button>
+            </div>
+
+            <div class="guess-list" id="guess-list"></div>
+
+            <button id="new-game-btn" class="btn-secondary hidden">Nueva partida</button>
+        </div>
+    </div>
+
+    <script src="bundle.js"></script>
+    <script>
+        let gameId = null;
+
+        const $ = (sel) => document.querySelector(sel);
+        const $$ = (sel) => document.querySelectorAll(sel);
+
+        const digitInputs = $$('.digit-input');
+        digitInputs.forEach((input, i) => {
+            input.addEventListener('input', () => {
+                input.value = input.value.replace(/[^0-9]/g, '');
+                if (input.value && i < 3) digitInputs[i + 1].focus();
+            });
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !input.value && i > 0) {
+                    digitInputs[i - 1].focus();
+                }
+                if (e.key === 'Enter') submitGuess();
+            });
+        });
+
+        function getGuessValue() {
+            return Array.from(digitInputs).map(i => i.value).join('');
+        }
+
+        function clearDigits() {
+            digitInputs.forEach(i => { i.value = ''; });
+            digitInputs[0].focus();
+        }
+
+        function showError(id, msg) {
+            const el = $(id);
+            el.textContent = msg;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 3000);
+        }
+
+        $('#nickname').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') startGame();
+        });
+
+        $('#start-btn').addEventListener('click', startGame);
+        $('#guess-btn').addEventListener('click', submitGuess);
+        $('#new-game-btn').addEventListener('click', () => {
+            $('#game-screen').classList.add('hidden');
+            $('#start-screen').classList.remove('hidden');
+            $('#nickname').value = '';
+            $('#nickname').focus();
+            gameId = null;
+        });
+
+        async function startGame() {
+            const nickname = $('#nickname').value.trim();
+            if (!nickname) { showError('#start-error', 'Ingresa un nickname.'); return; }
+
+            $('#start-btn').disabled = true;
+            try {
+                const data = await PicasYFijas.startGame(nickname);
+
+                gameId = data.id;
+                $('#player-name').textContent = data.playerNickname;
+                $('#attempt-count').textContent = '0 intentos';
+                $('#guess-list').innerHTML = '';
+                $('#win-banner').classList.add('hidden');
+                $('#guess-form-card').classList.remove('hidden');
+                $('#new-game-btn').classList.add('hidden');
+                $('#start-screen').classList.add('hidden');
+                $('#game-screen').classList.remove('hidden');
+                clearDigits();
+            } catch (err) {
+                showError('#start-error', err.message);
+            } finally {
+                $('#start-btn').disabled = false;
+            }
+        }
+
+        async function submitGuess() {
+            const guess = getGuessValue();
+            if (guess.length < 4) { showError('#guess-error', 'Completa los 4 dígitos.'); return; }
+
+            $('#guess-btn').disabled = true;
+            try {
+                const data = await PicasYFijas.makeGuess(gameId, guess);
+
+                renderGame(data);
+                clearDigits();
+            } catch (err) {
+                showError('#guess-error', err.message);
+            } finally {
+                $('#guess-btn').disabled = false;
+            }
+        }
+
+        function renderGame(game) {
+            const count = game.guesses.length;
+            $('#attempt-count').textContent = `${count} intento${count !== 1 ? 's' : ''}`;
+
+            $('#guess-list').innerHTML = game.guesses
+                .slice()
+                .reverse()
+                .map(g => `
+                    <div class="guess-item">
+                        <span class="guess-number">${g.guess}</span>
+                        <div class="guess-result">
+                            <span class="picas">P ${g.picas}</span>
+                            <span class="fijas">F ${g.fijas}</span>
+                        </div>
+                    </div>
+                `).join('');
+
+            if (game.state === 'FINISHED') {
+                $('#win-banner').classList.remove('hidden');
+                $('#win-message').textContent = `Adivinaste en ${count} intento${count !== 1 ? 's' : ''}`;
+                $('#guess-form-card').classList.add('hidden');
+                $('#new-game-btn').classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
