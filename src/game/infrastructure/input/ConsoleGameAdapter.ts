@@ -9,6 +9,7 @@ import { UuidV4IdProvider } from '../../../shared/infrastructure/output/UuidV4Id
 import { SECRET_NUMBER_DIGITS } from '../../../trivia/domain/GameRules';
 import { GetOrCreatePlayer } from '../../../player/application/use-cases/GetOrCreatePlayer';
 import { CreateTrivia } from '../../../trivia/application/use-cases/CreateTrivia';
+import { MakeGuess } from '../../../trivia/application/use-cases/MakeGuess';
 
 export class ConsoleGameAdapter {
     private readonly rl: readline.Interface;
@@ -29,8 +30,9 @@ export class ConsoleGameAdapter {
 
         const getOrCreatePlayer = new GetOrCreatePlayer(playerRepo, idProvider);
         const createTrivia = new CreateTrivia(triviaRepo, idProvider);
+        const makeGuessTrivia = new MakeGuess(triviaRepo);
         this.startGame = new StartSinglePlayerGame(gameRepo, getOrCreatePlayer, createTrivia, idProvider);
-        this.makeGuess = new MakeGuessInGame(gameRepo, triviaRepo);
+        this.makeGuess = new MakeGuessInGame(gameRepo, playerRepo, makeGuessTrivia);
     }
 
     async run(): Promise<void> {

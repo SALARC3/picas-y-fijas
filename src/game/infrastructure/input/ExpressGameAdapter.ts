@@ -8,6 +8,7 @@ import { FileSystemTriviaRepository } from '../../../trivia/infrastructure/outpu
 import { UuidV4IdProvider } from '../../../shared/infrastructure/output/UuidV4IdProvider';
 import { GetOrCreatePlayer } from '../../../player/application/use-cases/GetOrCreatePlayer';
 import { CreateTrivia } from '../../../trivia/application/use-cases/CreateTrivia';
+import { MakeGuess } from '../../../trivia/application/use-cases/MakeGuess';
 
 const app = express();
 app.use(express.json());
@@ -19,9 +20,10 @@ const gameRepo = new FileSystemSinglePlayerGameRepository('./data/games');
 
 const getOrCreatePlayer = new GetOrCreatePlayer(playerRepo, idProvider);
 const createTrivia = new CreateTrivia(triviaRepo, idProvider);
+const makeGuessTrivia = new MakeGuess(triviaRepo);
 const startGame = new StartSinglePlayerGame(gameRepo, getOrCreatePlayer, createTrivia, idProvider);
-const makeGuess = new MakeGuessInGame(gameRepo, triviaRepo);
-const getGameStatus = new GetGameStatus(gameRepo);
+const makeGuess = new MakeGuessInGame(gameRepo, playerRepo, makeGuessTrivia);
+const getGameStatus = new GetGameStatus(gameRepo, playerRepo, triviaRepo);
 
 app.post('/games', async (req: Request, res: Response) => {
     try {

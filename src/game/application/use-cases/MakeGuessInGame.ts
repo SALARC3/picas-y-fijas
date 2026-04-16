@@ -1,13 +1,14 @@
 import { SinglePlayerGameRepository } from '../ports/SinglePlayerGameRepository';
-import { TriviaRepository } from '../../../trivia/application/ports/TriviaRepository';
-import { Guess } from '../../../trivia/domain/value_objects/Guess';
+import { IPlayerRepository } from '../../../player/application/ports/IPlayerRepository';
+import { MakeGuess } from '../../../trivia/application/use-cases/MakeGuess';
 import { SinglePlayerGameDTO } from '../dto/SinglePlayerGameDTO';
 import { toSinglePlayerGameDTO } from '../mappers/SinglePlayerGameMapper';
 
 export class MakeGuessInGame {
     constructor(
         private readonly gameRepository: SinglePlayerGameRepository,
-        private readonly triviaRepository: TriviaRepository,
+        private readonly playerRepository: IPlayerRepository,
+        private readonly makeGuess: MakeGuess,
     ) {}
 
     async execute(gameId: string, guessValue: string): Promise<SinglePlayerGameDTO> {
@@ -16,13 +17,16 @@ export class MakeGuessInGame {
             throw new Error(`Juego con id: ${gameId} no encontrado.`);
         }
 
-        const guess = new Guess(guessValue);
-        game.trivia.makeGuess(guess);
+        const player = await this.playerRepository.findById(game.playerId);
+        if (!player) {
+            throw new Error(`Jugador con id: ${game.playerId} no encontrado.`);
+        }
+
+        const trivia = await this.makeGuess.execute(game.triviaId, guessValue);
         game.updatedAt = new Date();
 
-        await this.triviaRepository.save(game.trivia);
         await this.gameRepository.save(game);
 
-        return toSinglePlayerGameDTO(game);
+        return toSinglePlayerGameDTO(game, player, trivia);
     }
 }

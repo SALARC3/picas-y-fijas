@@ -18,9 +18,9 @@ export class StartSinglePlayerGame {
         const player = await this.getOrCreatePlayer.execute(nickname);
         const trivia = await this.createTrivia.execute();
 
-        const game = SinglePlayerGame.create(this.idProvider.generate(), player, trivia);
+        const game = SinglePlayerGame.create(this.idProvider.generate(), player.id, trivia.getId());
         await this.gameRepository.save(game);
 
-        return toSinglePlayerGameDTO(game);
+        return toSinglePlayerGameDTO(game, player, trivia);
     }
 }
