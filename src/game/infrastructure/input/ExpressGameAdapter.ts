@@ -18,12 +18,18 @@ import { GetOrCreatePlayer } from '../../../player/application/use-cases/GetOrCr
 import { CreateTrivia } from '../../../trivia/application/use-cases/CreateTrivia';
 import { MakeGuess } from '../../../trivia/application/use-cases/MakeGuess';
 import { GetSinglePlayerRanking } from '../../application/use-cases/GetSinglePlayerRanking';
+import { StartMultiPlayerGame } from '../../application/use-cases/StartMultiPlayerGame';
+import { MakeGuessInMultiPlayerGame } from '../../application/use-cases/MakeGuessInMultiPlayerGame';
+import { GetMultiPlayerGameStatus } from '../../application/use-cases/GetMultiPlayerGameStatus';
+import { MultiPlayerGameRepository } from '../../application/ports/MultiPlayerGameRepository';
+import { FileSystemMultiPlayerGameRepository } from '../output/FileSystemMultiPlayerGameRepository';
 
 async function buildDevRepositories() {
     return {
         playerRepo: new FileSystemPlayerRepository('./data/players') as IPlayerRepository,
         triviaRepo: new FileSystemTriviaRepository('./data/trivias') as TriviaRepository,
         gameRepo: new FileSystemSinglePlayerGameRepository('./data/games') as SinglePlayerGameRepository,
+        multiGameRepo: new FileSystemMultiPlayerGameRepository('./data/multi-games') as MultiPlayerGameRepository,
     };
 }
 
@@ -38,6 +44,7 @@ async function buildProdRepositories() {
         playerRepo: playerRepo as IPlayerRepository,
         triviaRepo: triviaRepo as TriviaRepository,
         gameRepo: gameRepo as SinglePlayerGameRepository,
+        multiGameRepo: new FileSystemMultiPlayerGameRepository('./data/multi-games') as MultiPlayerGameRepository,
     };
 }
 
@@ -47,7 +54,7 @@ async function main() {
         ? await buildProdRepositories()
         : await buildDevRepositories();
 
-    const { playerRepo, triviaRepo, gameRepo } = repos;
+    const { playerRepo, triviaRepo, gameRepo, multiGameRepo } = repos;
 
     const app = express();
     app.use(cors());
@@ -62,6 +69,11 @@ async function main() {
     const makeGuess = new MakeGuessInGame(gameRepo, playerRepo, makeGuessTrivia);
     const getGameStatus = new GetGameStatus(gameRepo, playerRepo, triviaRepo);
     const getSinglePlayerRanking = new GetSinglePlayerRanking(gameRepo, playerRepo, triviaRepo);
+
+    // Casos de uso multijugador
+    const startMultiPlayerGame = new StartMultiPlayerGame(multiGameRepo, getOrCreatePlayer, createTrivia, idProvider);
+    const makeGuessInMultiPlayerGame = new MakeGuessInMultiPlayerGame(multiGameRepo, playerRepo, triviaRepo, makeGuessTrivia);
+    const getMultiPlayerGameStatus = new GetMultiPlayerGameStatus(multiGameRepo, playerRepo, triviaRepo);
 
     console.log(`Modo: ${env} (${env === 'PROD' ? 'MySQL' : 'FileSystem'})`);
 
@@ -114,6 +126,60 @@ async function main() {
             res.status(200).json(ranking);
         } catch (error: unknown) {
             res.status(500).json({ error: (error as Error).message });
+        }
+    });
+
+    // ==========================================
+    // Endpoints Multijugador
+    // ==========================================
+
+    // Iniciar partida multijugador
+    app.post('/multi-games', async (req: Request, res: Response) => {
+        try {
+            const { nickname1, nickname2 } = req.body;
+            if (!nickname1 || !nickname2 || typeof nickname1 !== 'string' || typeof nickname2 !== 'string') {
+                res.status(400).json({ error: 'Los campos "nickname1" y "nickname2" son requeridos.' });
+                return;
+            }
+            if (nickname1 === nickname2) {
+                res.status(400).json({ error: 'Los jugadores deben tener nicknames diferentes.' });
+                return;
+            }
+            const game = await startMultiPlayerGame.execute(nickname1, nickname2);
+            res.status(201).json(game);
+        } catch (error: unknown) {
+            res.status(400).json({ error: (error as Error).message });
+        }
+    });
+
+    // Hacer un intento en partida multijugador
+    app.post('/multi-games/:gameId/guesses', async (req: Request<{ gameId: string }>, res: Response) => {
+        try {
+            const { gameId } = req.params;
+            const { guess } = req.body;
+            if (!guess || typeof guess !== 'string') {
+                res.status(400).json({ error: 'El campo "guess" es requerido.' });
+                return;
+            }
+            const game = await makeGuessInMultiPlayerGame.execute(gameId, guess);
+            res.status(200).json(game);
+        } catch (error: unknown) {
+            const message = (error as Error).message;
+            const status = message.includes('no encontrad') ? 404 : 400;
+            res.status(status).json({ error: message });
+        }
+    });
+
+    // Consultar estado de partida multijugador
+    app.get('/multi-games/:gameId', async (req: Request<{ gameId: string }>, res: Response) => {
+        try {
+            const { gameId } = req.params;
+            const game = await getMultiPlayerGameStatus.execute(gameId);
+            res.status(200).json(game);
+        } catch (error: unknown) {
+            const message = (error as Error).message;
+            const status = message.includes('no encontrad') ? 404 : 500;
+            res.status(status).json({ error: message });
         }
     });
 

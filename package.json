@@ -8,6 +8,7 @@
   "main": "index.js",
   "scripts": {
     "start-console": "npx ts-node src/game/infrastructure/input/ConsoleGameAdapter.ts",
+    "start-console-multi": "npx ts-node src/game/infrastructure/input/ConsoleMultiPlayerAdapter.ts",
     "start-http": "npx ts-node src/game/infrastructure/input/ExpressGameAdapter.ts",
     "start-front": "npm run build-front && npx http-server public -p 8080 -o",
     "start-www": "npx http-server www -p 8080 -o",

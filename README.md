@@ -15,17 +15,20 @@ El proyecto sigue los principios de **Arquitectura Hexagonal (Ports & Adapters)*
 
 ```
 src/
-├── game/                          # Módulo: Partida single-player
-│   ├── domain/entities/           # SinglePlayerGame
+├── game/                          # Módulo: Partida single-player y multi-player
+│   ├── domain/entities/           # SinglePlayerGame, MultiPlayerGame
 │   ├── application/
-│   │   ├── ports/                 # SinglePlayerGameRepository
+│   │   ├── ports/                 # SinglePlayerGameRepository, MultiPlayerGameRepository
 │   │   ├── use-cases/             # StartSinglePlayerGame, MakeGuessInGame,
-│   │   │                          # GetGameStatus, GetSinglePlayerRanking
-│   │   ├── dto/                   # SinglePlayerGameDTO, SinglePlayerRankingElementDTO
-│   │   └── mappers/               # SinglePlayerGameMapper
+│   │   │                          # GetGameStatus, GetSinglePlayerRanking,
+│   │   │                          # StartMultiPlayerGame, MakeGuessInMultiPlayerGame,
+│   │   │                          # GetMultiPlayerGameStatus
+│   │   ├── dto/                   # SinglePlayerGameDTO, MultiPlayerGameDTO,
+│   │   │                          # SinglePlayerRankingElementDTO
+│   │   └── mappers/               # SinglePlayerGameMapper, MultiPlayerGameMapper
 │   └── infrastructure/
 │       ├── input/                 # ExpressGameAdapter, ConsoleGameAdapter,
-│       │                          # BrowserGameAdapter
+│       │                          # ConsoleMultiPlayerAdapter, BrowserGameAdapter
 │       └── output/                # FileSystem, MySQL, LocalStorage repos
 │
 ├── trivia/                        # Módulo: Trivia (lógica del acertijo)
@@ -262,11 +265,90 @@ El ranking ordena los jugadores por su **mejor puntaje**.
 
 | Script | Descripción |
 |---|---|
-| `npm run start-console` | Inicia el juego en consola (CLI) |
+| `npm run start-console` | Inicia el juego en consola (CLI) — 1 jugador |
+| `npm run start-console-multi` | Inicia el juego en consola (CLI) — 2 jugadores |
 | `npm run start-http` | Inicia la API REST Express (puerto 3000) |
 | `npm run start-www` | Sirve el frontend www (puerto 8080) |
 | `npm run build-front` | Empaqueta el frontend standalone |
 | `npm run start-front` | Sirve el frontend standalone (puerto 8080) |
+
+---
+
+## 🆚 Modo Multijugador (2 Jugadores)
+
+Dos jugadores compiten por adivinar el **mismo número secreto**, turnándose. Gana el primero que adivine.
+
+### Capturas de pantalla
+
+![Pantalla de inicio multijugador](public/image.png)
+
+![Partida en curso — turnos alternados](public/image%20copy.png)
+
+![Resultado final — ganador](public/image%20copy%202.png)
+
+### Cómo jugar
+
+#### Consola (CLI)
+
+```bash
+npm run start-console-multi
+```
+
+#### API HTTP
+
+```bash
+npm run start-http
+```
+
+Endpoints multijugador:
+
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `POST` | `/multi-games` | Iniciar partida (`nickname1`, `nickname2`) |
+| `POST` | `/multi-games/:gameId/guesses` | Hacer intento (turno automático) |
+| `GET` | `/multi-games/:gameId` | Consultar estado |
+
+##### `POST /multi-games` — Iniciar partida
+
+```json
+// Request
+{ "nickname1": "jugador1", "nickname2": "jugador2" }
+
+// Response 201
+{
+  "id": "uuid",
+  "player1": { "playerId": "uuid", "playerNickname": "jugador1", "guesses": [], "score": null },
+  "player2": { "playerId": "uuid", "playerNickname": "jugador2", "guesses": [], "score": null },
+  "currentTurnNickname": "jugador1",
+  "winnerId": null,
+  "state": "PLAYING"
+}
+```
+
+##### `POST /multi-games/:gameId/guesses` — Hacer intento
+
+```json
+// Request
+{ "guess": "1234" }
+
+// Response 200 — el turno cambia automáticamente al otro jugador
+{
+  "id": "uuid",
+  "player1": { "playerNickname": "jugador1", "guesses": [{ "guess": "1234", "picas": 1, "fijas": 2 }] },
+  "player2": { "playerNickname": "jugador2", "guesses": [] },
+  "currentTurnNickname": "jugador2",
+  "state": "PLAYING"
+}
+```
+
+#### Frontend (Browser)
+
+```bash
+npm run start-http   # Terminal 1
+npm run start-www    # Terminal 2
+```
+
+Abrir `http://localhost:8080/multiplayer.html`
 
 ---
 
