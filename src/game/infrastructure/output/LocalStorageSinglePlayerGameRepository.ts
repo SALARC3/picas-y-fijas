@@ -25,6 +25,11 @@ export class LocalStorageSinglePlayerGameRepository implements SinglePlayerGameR
         return this.deserialize(stored);
     }
 
+    async findAll(): Promise<SinglePlayerGame[]> {
+        const entries = this.loadAll();
+        return Array.from(entries.values()).map(stored => this.deserialize(stored));
+    }
+
     private loadAll(): Map<string, StoredGame> {
         const raw = localStorage.getItem(this.storageKey);
         if (!raw) return new Map();

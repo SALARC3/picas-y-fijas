@@ -17,6 +17,7 @@ import { UuidV4IdProvider } from '../../../shared/infrastructure/output/UuidV4Id
 import { GetOrCreatePlayer } from '../../../player/application/use-cases/GetOrCreatePlayer';
 import { CreateTrivia } from '../../../trivia/application/use-cases/CreateTrivia';
 import { MakeGuess } from '../../../trivia/application/use-cases/MakeGuess';
+import { GetSinglePlayerRanking } from '../../application/use-cases/GetSinglePlayerRanking';
 
 async function buildDevRepositories() {
     return {
@@ -60,6 +61,7 @@ async function main() {
     const startGame = new StartSinglePlayerGame(gameRepo, getOrCreatePlayer, createTrivia, idProvider);
     const makeGuess = new MakeGuessInGame(gameRepo, playerRepo, makeGuessTrivia);
     const getGameStatus = new GetGameStatus(gameRepo, playerRepo, triviaRepo);
+    const getSinglePlayerRanking = new GetSinglePlayerRanking(gameRepo, playerRepo, triviaRepo);
 
     console.log(`Modo: ${env} (${env === 'PROD' ? 'MySQL' : 'FileSystem'})`);
 
@@ -103,6 +105,15 @@ async function main() {
             const message = (error as Error).message;
             const status = message.includes('no encontrado') ? 404 : 500;
             res.status(status).json({ error: message });
+        }
+    });
+
+    app.get('/ranking', async (_req: Request, res: Response) => {
+        try {
+            const ranking = await getSinglePlayerRanking.execute();
+            res.status(200).json(ranking);
+        } catch (error: unknown) {
+            res.status(500).json({ error: (error as Error).message });
         }
     });
 

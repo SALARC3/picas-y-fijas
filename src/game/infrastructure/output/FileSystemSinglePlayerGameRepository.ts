@@ -31,6 +31,14 @@ export class FileSystemSinglePlayerGameRepository implements SinglePlayerGameRep
         return this.deserialize(JSON.parse(raw));
     }
 
+    async findAll(): Promise<SinglePlayerGame[]> {
+        const files = fs.readdirSync(this.folderPath).filter(f => f.endsWith('.json'));
+        return files.map(file => {
+            const raw = fs.readFileSync(path.join(this.folderPath, file), 'utf-8');
+            return this.deserialize(JSON.parse(raw));
+        });
+    }
+
     private getFilePath(id: string): string {
         return path.join(this.folderPath, `${id}.json`);
     }

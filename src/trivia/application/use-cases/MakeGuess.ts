@@ -14,6 +14,10 @@ export class MakeGuess {
         const guess = new Guess(guessValue);
         trivia.makeGuess(guess);
 
+        if (trivia.isFinished()) {
+            trivia.calculateScore();
+        }
+
         await this.triviaRepository.save(trivia);
 
         return trivia;

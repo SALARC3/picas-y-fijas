@@ -64,4 +64,18 @@ export class MySqlSinglePlayerGameRepository implements SinglePlayerGameReposito
             new Date(row.updated_at)
         );
     }
+
+    async findAll(): Promise<SinglePlayerGame[]> {
+        const [rows] = await this.pool.execute<GameRow[]>(
+            "SELECT id, player_id, trivia_id, created_at, updated_at FROM single_player_games"
+        );
+
+        return rows.map(row => SinglePlayerGame.create(
+            row.id,
+            row.player_id,
+            row.trivia_id,
+            new Date(row.created_at),
+            new Date(row.updated_at)
+        ));
+    }
 }

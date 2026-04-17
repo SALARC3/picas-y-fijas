@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranking - Picas y Fijas</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+        .container {
+            width: 100%;
+            max-width: 520px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #38bdf8;
+        }
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        .loading, .error-msg, .empty-msg {
+            text-align: center;
+            padding: 2rem;
+            color: #94a3b8;
+        }
+        .error-msg { color: #f87171; }
+        .ranking-list { display: flex; flex-direction: column; gap: 0.6rem; }
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 1rem 1.2rem;
+            transition: background 0.2s;
+        }
+        .ranking-item:hover { background: #283548; }
+        .ranking-position {
+            font-size: 1.3rem;
+            font-weight: 800;
+            min-width: 2rem;
+            text-align: center;
+            color: #64748b;
+        }
+        .ranking-item:nth-child(1) .ranking-position { color: #fbbf24; }
+        .ranking-item:nth-child(2) .ranking-position { color: #94a3b8; }
+        .ranking-item:nth-child(3) .ranking-position { color: #cd7f32; }
+        .ranking-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #334155;
+            flex-shrink: 0;
+        }
+        .ranking-info { flex: 1; min-width: 0; }
+        .ranking-nickname {
+            font-weight: 700;
+            font-size: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .ranking-details {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 0.15rem;
+        }
+        .ranking-scores {
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .ranking-best {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #4ade80;
+        }
+        .ranking-total {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 0.1rem;
+        }
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 2rem;
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link:hover { text-decoration: underline; }
+        .refresh-btn {
+            display: block;
+            margin: 0 auto 1.5rem;
+            padding: 0.5rem 1.5rem;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .refresh-btn:hover { border-color: #38bdf8; color: #38bdf8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏆 Ranking</h1>
+        <p class="subtitle">Los mejores jugadores de Picas y Fijas</p>
+
+        <button class="refresh-btn" id="refresh-btn">Actualizar</button>
+
+        <div id="loading" class="loading">Cargando ranking...</div>
+        <div id="error" class="error-msg" style="display:none"></div>
+        <div id="empty" class="empty-msg" style="display:none">Aún no hay partidas finalizadas.</div>
+        <div id="ranking-list" class="ranking-list"></div>
+
+        <a href="index.html" class="back-link">← Volver al juego</a>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+
+        async function loadRanking() {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const empty = document.getElementById('empty');
+            const list = document.getElementById('ranking-list');
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            empty.style.display = 'none';
+            list.innerHTML = '';
+
+            try {
+                const res = await fetch(`${API_BASE}/ranking`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Error del servidor');
+
+                loading.style.display = 'none';
+
+                if (data.length === 0) {
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                list.innerHTML = data.map((entry, i) => `
+                    <div class="ranking-item">
+                        <span class="ranking-position">${i + 1}</span>
+                        <img class="ranking-avatar" src="${entry.avatarUrl}" alt="${entry.playerNickname}">
+                        <div class="ranking-info">
+                            <div class="ranking-nickname">${entry.playerNickname}</div>
+                            <div class="ranking-details">${entry.gamesPlayed} partida${entry.gamesPlayed !== 1 ? 's' : ''}</div>
+                        </div>
+                        <div class="ranking-scores">
+                            <div class="ranking-best">${entry.bestScore.toLocaleString()}</div>
+                            <div class="ranking-total">Total: ${entry.totalScore.toLocaleString()}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                loading.style.display = 'none';
+                error.textContent = err.message;
+                error.style.display = 'block';
+            }
+        }
+
+        document.getElementById('refresh-btn').addEventListener('click', loadRanking);
+        loadRanking();
+    </script>
+</body>
+</html>

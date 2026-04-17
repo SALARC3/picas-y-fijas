@@ -10,6 +10,7 @@ import { GuessResult } from "../../domain/value_objects/GuessResult";
 interface TriviaRow extends RowDataPacket {
     id: string;
     secret_number: string;
+    score: number | null;
     created_at: Date;
     updated_at: Date;
 }
@@ -33,6 +34,7 @@ export class MySqlTriviaRepository implements TriviaRepository {
             CREATE TABLE IF NOT EXISTS trivias (
                 id VARCHAR(36) PRIMARY KEY,
                 secret_number VARCHAR(4) NOT NULL,
+                score INT DEFAULT NULL,
                 created_at DATETIME NOT NULL,
                 updated_at DATETIME NOT NULL
             )
@@ -57,11 +59,12 @@ export class MySqlTriviaRepository implements TriviaRepository {
             await connection.beginTransaction();
 
             await connection.execute(
-                `INSERT INTO trivias (id, secret_number, created_at, updated_at)
-                 VALUES (?, ?, ?, ?)
+                `INSERT INTO trivias (id, secret_number, score, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?)
                  ON DUPLICATE KEY UPDATE
+                    score = VALUES(score),
                     updated_at = VALUES(updated_at)`,
-                [trivia.getId(), trivia.getSecretNumber().getValue(), trivia.getCreatedAt(), trivia.getUpdatedAt()]
+                [trivia.getId(), trivia.getSecretNumber().getValue(), trivia.getScore(), trivia.getCreatedAt(), trivia.getUpdatedAt()]
             );
 
             await connection.execute(
@@ -90,7 +93,7 @@ export class MySqlTriviaRepository implements TriviaRepository {
 
     async findById(id: string): Promise<Trivia | null> {
         const [triviaRows] = await this.pool.execute<TriviaRow[]>(
-            "SELECT id, secret_number, created_at, updated_at FROM trivias WHERE id = ?",
+            "SELECT id, secret_number, score, created_at, updated_at FROM trivias WHERE id = ?",
             [id]
         );
 
@@ -112,7 +115,8 @@ export class MySqlTriviaRepository implements TriviaRepository {
             new SecretNumber(row.secret_number),
             guesses,
             new Date(row.created_at),
-            new Date(row.updated_at)
+            new Date(row.updated_at),
+            row.score
         );
     }
 }

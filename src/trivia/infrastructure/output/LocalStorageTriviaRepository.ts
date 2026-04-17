@@ -8,6 +8,7 @@ interface StoredTrivia {
     id: string;
     secretNumber: string;
     guesses: { guess: string; picas: number; fijas: number }[];
+    score: number | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -43,6 +44,7 @@ export class LocalStorageTriviaRepository implements TriviaRepository {
                 picas: g.picas,
                 fijas: g.fijas,
             })),
+            score: trivia.getScore(),
             createdAt: trivia.getCreatedAt().toISOString(),
             updatedAt: trivia.getUpdatedAt().toISOString(),
         };
@@ -53,6 +55,6 @@ export class LocalStorageTriviaRepository implements TriviaRepository {
         const guesses = stored.guesses.map(
             g => new GuessResult(new Guess(g.guess), g.picas, g.fijas),
         );
-        return new Trivia(stored.id, secretNumber, guesses, new Date(stored.createdAt), new Date(stored.updatedAt));
+        return new Trivia(stored.id, secretNumber, guesses, new Date(stored.createdAt), new Date(stored.updatedAt), stored.score);
     }
 }
