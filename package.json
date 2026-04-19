@@ -8,11 +8,12 @@
   "main": "index.js",
   "scripts": {
     "start-console": "npx ts-node src/game/infrastructure/input/ConsoleGameAdapter.ts",
+    "start-console-multiplayer": "npx ts-node src/game/infrastructure/input/ConsoleMultiplayerAdapter.ts",
     "start-http": "npx ts-node src/game/infrastructure/input/ExpressGameAdapter.ts",
     "start-front": "npm run build-front && npx http-server public -p 8080 -o",
     "start-www": "npx http-server www -p 8080 -o",
     "build-front": "npx esbuild src/game/infrastructure/input/BrowserGameAdapter.ts --bundle --outfile=public/bundle.js --platform=browser --format=iife",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --passWithNoTests"
   },
   "dependencies": {
     "cors": "^2.8.6",
@@ -23,9 +24,14 @@
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
     "@types/node": "^25.6.0",
+    "@types/supertest": "^7.2.0",
     "@types/uuid": "^10.0.0",
     "esbuild": "^0.28.0",
+    "jest": "^30.3.0",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.2"
   }

@@ -18,26 +18,35 @@ import { GetOrCreatePlayer } from '../../../player/application/use-cases/GetOrCr
 import { CreateTrivia } from '../../../trivia/application/use-cases/CreateTrivia';
 import { MakeGuess } from '../../../trivia/application/use-cases/MakeGuess';
 import { GetSinglePlayerRanking } from '../../application/use-cases/GetSinglePlayerRanking';
+import { StartMultiplayerGame } from '../../application/use-cases/StartMultiplayerGame';
+import { MakeMultiplayerGuess } from '../../application/use-cases/MakeMultiplayerGuess';
+import { GetMultiplayerGameStatus } from '../../application/use-cases/GetMultiplayerGameStatus';
+import { FileSystemMultiplayerGameRepository } from '../output/FileSystemMultiplayerGameRepository';
+import { MySqlMultiplayerGameRepository } from '../output/MySqlMultiplayerGameRepository';
+import { MultiplayerGameRepository } from '../../application/ports/MultiplayerGameRepository';
 
 async function buildDevRepositories() {
     return {
         playerRepo: new FileSystemPlayerRepository('./data/players') as IPlayerRepository,
         triviaRepo: new FileSystemTriviaRepository('./data/trivias') as TriviaRepository,
         gameRepo: new FileSystemSinglePlayerGameRepository('./data/games') as SinglePlayerGameRepository,
+        multiplayerGameRepo: new FileSystemMultiplayerGameRepository('./data/multiplayer-games') as MultiplayerGameRepository,
     };
 }
 
 async function buildProdRepositories() {
     const secretProvider = new DotEnvSecretProvider();
-    const [playerRepo, triviaRepo, gameRepo] = await Promise.all([
+    const [playerRepo, triviaRepo, gameRepo, multiplayerGameRepo] = await Promise.all([
         MySqlPlayerRepository.create(secretProvider),
         MySqlTriviaRepository.create(secretProvider),
         MySqlSinglePlayerGameRepository.create(secretProvider),
+        MySqlMultiplayerGameRepository.create(secretProvider),
     ]);
     return {
         playerRepo: playerRepo as IPlayerRepository,
         triviaRepo: triviaRepo as TriviaRepository,
         gameRepo: gameRepo as SinglePlayerGameRepository,
+        multiplayerGameRepo: multiplayerGameRepo as MultiplayerGameRepository,
     };
 }
 
@@ -47,7 +56,7 @@ async function main() {
         ? await buildProdRepositories()
         : await buildDevRepositories();
 
-    const { playerRepo, triviaRepo, gameRepo } = repos;
+    const { playerRepo, triviaRepo, gameRepo, multiplayerGameRepo } = repos;
 
     const app = express();
     app.use(cors());
@@ -62,6 +71,10 @@ async function main() {
     const makeGuess = new MakeGuessInGame(gameRepo, playerRepo, makeGuessTrivia);
     const getGameStatus = new GetGameStatus(gameRepo, playerRepo, triviaRepo);
     const getSinglePlayerRanking = new GetSinglePlayerRanking(gameRepo, playerRepo, triviaRepo);
+
+    const startMultiplayerGame = new StartMultiplayerGame(multiplayerGameRepo, getOrCreatePlayer, createTrivia, idProvider);
+    const makeMultiplayerGuess = new MakeMultiplayerGuess(multiplayerGameRepo, playerRepo, triviaRepo, makeGuessTrivia);
+    const getMultiplayerGameStatus = new GetMultiplayerGameStatus(multiplayerGameRepo, playerRepo, triviaRepo);
 
     console.log(`Modo: ${env} (${env === 'PROD' ? 'MySQL' : 'FileSystem'})`);
 
@@ -114,6 +127,51 @@ async function main() {
             res.status(200).json(ranking);
         } catch (error: unknown) {
             res.status(500).json({ error: (error as Error).message });
+        }
+    });
+
+    // ==================== MULTIPLAYER ROUTES ====================
+
+    app.post('/multiplayer/games', async (req: Request, res: Response) => {
+        try {
+            const { nickname1, nickname2 } = req.body;
+            if (!nickname1 || typeof nickname1 !== 'string' || !nickname2 || typeof nickname2 !== 'string') {
+                res.status(400).json({ error: 'Los campos "nickname1" y "nickname2" son requeridos.' });
+                return;
+            }
+            const game = await startMultiplayerGame.execute(nickname1, nickname2);
+            res.status(201).json(game);
+        } catch (error: unknown) {
+            res.status(400).json({ error: (error as Error).message });
+        }
+    });
+
+    app.post('/multiplayer/games/:gameId/guesses', async (req: Request<{ gameId: string }>, res: Response) => {
+        try {
+            const { gameId } = req.params;
+            const { playerId, guess } = req.body;
+            if (!playerId || typeof playerId !== 'string' || !guess || typeof guess !== 'string') {
+                res.status(400).json({ error: 'Los campos "playerId" y "guess" son requeridos.' });
+                return;
+            }
+            const game = await makeMultiplayerGuess.execute(gameId, playerId, guess);
+            res.status(200).json(game);
+        } catch (error: unknown) {
+            const message = (error as Error).message;
+            const status = message.includes('no encontrado') ? 404 : 400;
+            res.status(status).json({ error: message });
+        }
+    });
+
+    app.get('/multiplayer/games/:gameId', async (req: Request<{ gameId: string }>, res: Response) => {
+        try {
+            const { gameId } = req.params;
+            const game = await getMultiplayerGameStatus.execute(gameId);
+            res.status(200).json(game);
+        } catch (error: unknown) {
+            const message = (error as Error).message;
+            const status = message.includes('no encontrado') ? 404 : 500;
+            res.status(status).json({ error: message });
         }
     });
 

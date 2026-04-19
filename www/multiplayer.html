@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Picas y Fijas — 2 Jugadores</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .container { width: 100%; max-width: 800px; padding: 1rem; }
+        h1 { text-align: center; font-size: 2rem; margin-bottom: 0.5rem; color: #38bdf8; }
+        .subtitle { text-align: center; color: #94a3b8; margin-bottom: 1.5rem; font-size: 0.9rem; }
+        .nav-links { text-align: center; margin-bottom: 1.5rem; }
+        .nav-links a { color: #38bdf8; text-decoration: none; font-weight: 600; margin: 0 0.5rem; }
+        .card { background: #1e293b; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+        label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.4rem; }
+        input {
+            width: 100%; padding: 0.7rem 1rem; border: 2px solid #334155; border-radius: 8px;
+            background: #0f172a; color: #e2e8f0; font-size: 1rem; outline: none; transition: border-color 0.2s;
+        }
+        input:focus { border-color: #38bdf8; }
+        input::placeholder { color: #475569; }
+        button {
+            width: 100%; padding: 0.75rem; border: none; border-radius: 8px;
+            font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 0.8rem;
+        }
+        .btn-primary { background: #38bdf8; color: #0f172a; }
+        .btn-primary:hover { background: #7dd3fc; }
+        .btn-primary:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+        .btn-secondary { background: #334155; color: #e2e8f0; }
+        .btn-secondary:hover { background: #475569; }
+        .error { color: #f87171; font-size: 0.85rem; margin-top: 0.5rem; text-align: center; }
+        .hidden { display: none; }
+
+        .players-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+        .player-column { min-width: 0; }
+        .player-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 0.8rem; padding-bottom: 0.5rem; border-bottom: 2px solid #334155;
+        }
+        .player-name { font-weight: 700; font-size: 1.1rem; }
+        .player-name.active { color: #38bdf8; }
+        .player-name.waiting { color: #64748b; }
+        .attempt-count { color: #94a3b8; font-size: 0.8rem; }
+        .turn-badge {
+            font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.5rem;
+            border-radius: 4px; background: #38bdf8; color: #0f172a;
+        }
+
+        .guess-list { max-height: 280px; overflow-y: auto; }
+        .guess-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.5rem 0.6rem; border-radius: 8px; margin-bottom: 0.3rem; background: #0f172a;
+        }
+        .guess-number { font-family: 'Courier New', monospace; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.2rem; }
+        .guess-result { display: flex; gap: 0.5rem; }
+        .picas, .fijas { font-size: 0.8rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 6px; }
+        .picas { background: #854d0e; color: #fde047; }
+        .fijas { background: #166534; color: #4ade80; }
+
+        .turn-indicator {
+            text-align: center; padding: 0.8rem; background: #1e293b; border-radius: 8px;
+            margin-bottom: 1rem; font-weight: 600; color: #38bdf8;
+        }
+
+        .digit-inputs { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.5rem; }
+        .digit-input {
+            width: 3.5rem; height: 3.5rem; text-align: center; font-size: 1.5rem;
+            font-weight: 700; font-family: 'Courier New', monospace; padding: 0;
+        }
+
+        .result-banner {
+            text-align: center; padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem;
+        }
+        .result-banner.win { background: linear-gradient(135deg, #166534, #15803d); }
+        .result-banner.draw { background: linear-gradient(135deg, #854d0e, #a16207); }
+        .result-banner h2 { margin-bottom: 0.5rem; }
+        .result-banner.win h2 { color: #4ade80; }
+        .result-banner.draw h2 { color: #fde047; }
+        .result-banner p { color: #bbf7d0; }
+        .result-banner.draw p { color: #fef9c3; }
+
+        .score-row { display: flex; justify-content: center; gap: 2rem; margin-top: 0.5rem; }
+        .score-item { text-align: center; }
+        .score-label { font-size: 0.75rem; color: #94a3b8; }
+        .score-value { font-size: 1.2rem; font-weight: 700; color: #4ade80; }
+
+        .input-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .input-row input { flex: 1; }
+
+        @media (max-width: 600px) {
+            .players-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Picas y Fijas</h1>
+        <p class="subtitle">Modo 2 Jugadores — Adivina el número secreto de 4 dígitos únicos</p>
+        <div class="nav-links">
+            <a href="index.html">🎮 1 Jugador</a>
+            <a href="ranking.html">🏆 Ranking</a>
+        </div>
+
+        <!-- Pantalla de inicio -->
+        <div id="start-screen">
+            <div class="card">
+                <div class="input-row">
+                    <div style="flex:1">
+                        <label for="nickname1">Jugador 1</label>
+                        <input type="text" id="nickname1" placeholder="Nickname jugador 1" maxlength="20" autofocus>
+                    </div>
+                    <div style="flex:1">
+                        <label for="nickname2">Jugador 2</label>
+                        <input type="text" id="nickname2" placeholder="Nickname jugador 2" maxlength="20">
+                    </div>
+                </div>
+                <div id="start-error" class="error hidden"></div>
+                <button id="start-btn" class="btn-primary">Iniciar Partida</button>
+            </div>
+        </div>
+
+        <!-- Pantalla de juego -->
+        <div id="game-screen" class="hidden">
+            <div id="result-banner" class="result-banner hidden"></div>
+
+            <div id="turn-indicator" class="turn-indicator"></div>
+
+            <div id="guess-form-card" class="card">
+                <label id="guess-label">Tu intento</label>
+                <div class="digit-inputs">
+                    <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="0">
+                    <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="1">
+                    <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="2">
+                    <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="3">
+                </div>
+                <div id="guess-error" class="error hidden"></div>
+                <button id="guess-btn" class="btn-primary">Adivinar</button>
+            </div>
+
+            <div class="players-grid">
+                <div class="player-column">
+                    <div class="player-header">
+                        <span class="player-name" id="p1-name"></span>
+                        <span class="attempt-count" id="p1-attempts">0 intentos</span>
+                    </div>
+                    <div class="guess-list" id="p1-guesses"></div>
+                </div>
+                <div class="player-column">
+                    <div class="player-header">
+                        <span class="player-name" id="p2-name"></span>
+                        <span class="attempt-count" id="p2-attempts">0 intentos</span>
+                    </div>
+                    <div class="guess-list" id="p2-guesses"></div>
+                </div>
+            </div>
+
+            <button id="new-game-btn" class="btn-secondary hidden">Nueva partida</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+        let gameState = null;
+
+        const $ = id => document.getElementById(id);
+        const q = sel => document.querySelector(sel);
+        const qa = sel => document.querySelectorAll(sel);
+
+        const digitInputs = qa('.digit-input');
+        digitInputs.forEach((input, i) => {
+            input.addEventListener('input', () => {
+                input.value = input.value.replace(/[^0-9]/g, '');
+                if (input.value && i < 3) digitInputs[i + 1].focus();
+            });
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !input.value && i > 0) digitInputs[i - 1].focus();
+                if (e.key === 'Enter') submitGuess();
+            });
+        });
+
+        function getGuessValue() { return Array.from(digitInputs).map(i => i.value).join(''); }
+        function clearDigits() { digitInputs.forEach(i => { i.value = ''; }); digitInputs[0].focus(); }
+
+        function showError(id, msg) {
+            const el = $(id);
+            el.textContent = msg;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 3000);
+        }
+
+        async function apiPost(path, body) {
+            const res = await fetch(`${API_BASE}${path}`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Error del servidor');
+            return data;
+        }
+
+        $('nickname2').addEventListener('keydown', (e) => { if (e.key === 'Enter') startGame(); });
+        $('start-btn').addEventListener('click', startGame);
+        $('guess-btn').addEventListener('click', submitGuess);
+        $('new-game-btn').addEventListener('click', () => {
+            $('game-screen').classList.add('hidden');
+            $('start-screen').classList.remove('hidden');
+            $('nickname1').value = '';
+            $('nickname2').value = '';
+            $('nickname1').focus();
+            gameState = null;
+        });
+
+        async function startGame() {
+            const nickname1 = $('nickname1').value.trim();
+            const nickname2 = $('nickname2').value.trim();
+            if (!nickname1 || !nickname2) { showError('start-error', 'Ambos nicknames son requeridos.'); return; }
+
+            $('start-btn').disabled = true;
+            try {
+                const data = await apiPost('/multiplayer/games', { nickname1, nickname2 });
+                gameState = data;
+                renderGame(data);
+                $('start-screen').classList.add('hidden');
+                $('game-screen').classList.remove('hidden');
+                clearDigits();
+            } catch (err) {
+                showError('start-error', err.message);
+            } finally {
+                $('start-btn').disabled = false;
+            }
+        }
+
+        async function submitGuess() {
+            const guess = getGuessValue();
+            if (guess.length < 4) { showError('guess-error', 'Completa los 4 dígitos.'); return; }
+
+            $('guess-btn').disabled = true;
+            try {
+                const data = await apiPost(`/multiplayer/games/${gameState.id}/guesses`, {
+                    playerId: gameState.currentPlayerId,
+                    guess,
+                });
+                gameState = data;
+                renderGame(data);
+                clearDigits();
+            } catch (err) {
+                showError('guess-error', err.message);
+            } finally {
+                $('guess-btn').disabled = false;
+            }
+        }
+
+        function renderGuesses(guesses) {
+            return guesses.slice().reverse().map(g => `
+                <div class="guess-item">
+                    <span class="guess-number">${g.guess}</span>
+                    <div class="guess-result">
+                        <span class="picas">P ${g.picas}</span>
+                        <span class="fijas">F ${g.fijas}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderGame(game) {
+            const isP1Turn = game.currentTurn === 'PLAYER_1';
+            const currentName = isP1Turn ? game.player1.playerNickname : game.player2.playerNickname;
+
+            $('p1-name').textContent = game.player1.playerNickname;
+            $('p1-name').className = 'player-name ' + (isP1Turn ? 'active' : 'waiting');
+            $('p1-attempts').textContent = `${game.player1.attemptsCount} intento${game.player1.attemptsCount !== 1 ? 's' : ''}`;
+            $('p1-guesses').innerHTML = renderGuesses(game.player1.guesses);
+
+            $('p2-name').textContent = game.player2.playerNickname;
+            $('p2-name').className = 'player-name ' + (!isP1Turn ? 'active' : 'waiting');
+            $('p2-attempts').textContent = `${game.player2.attemptsCount} intento${game.player2.attemptsCount !== 1 ? 's' : ''}`;
+            $('p2-guesses').innerHTML = renderGuesses(game.player2.guesses);
+
+            if (game.state === 'FINISHED') {
+                $('guess-form-card').classList.add('hidden');
+                $('turn-indicator').classList.add('hidden');
+                $('new-game-btn').classList.remove('hidden');
+
+                const banner = $('result-banner');
+                banner.classList.remove('hidden');
+
+                if (game.result === 'DRAW') {
+                    banner.className = 'result-banner draw';
+                    banner.innerHTML = `<h2>¡Empate!</h2><p>Ambos jugadores acertaron con el mismo puntaje</p>`;
+                } else {
+                    banner.className = 'result-banner win';
+                    banner.innerHTML = `<h2>¡${game.winnerNickname} gana!</h2>
+                        <div class="score-row">
+                            <div class="score-item">
+                                <div class="score-label">${game.player1.playerNickname}</div>
+                                <div class="score-value">${game.player1.score ?? '—'}</div>
+                            </div>
+                            <div class="score-item">
+                                <div class="score-label">${game.player2.playerNickname}</div>
+                                <div class="score-value">${game.player2.score ?? '—'}</div>
+                            </div>
+                        </div>`;
+                }
+            } else {
+                $('guess-form-card').classList.remove('hidden');
+                $('turn-indicator').classList.remove('hidden');
+                $('result-banner').classList.add('hidden');
+                $('new-game-btn').classList.add('hidden');
+                $('turn-indicator').textContent = `Turno de ${currentName}`;
+                $('guess-label').textContent = `Intento de ${currentName}`;
+            }
+        }
+    </script>
+</body>
+</html>
