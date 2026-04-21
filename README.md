@@ -28,6 +28,19 @@ src/
 │       │                          # BrowserGameAdapter
 │       └── output/                # FileSystem, MySQL, LocalStorage repos
 │
+├── multiplayer/                   # Módulo: Partida multijugador
+│   ├── domain/
+│   │   ├── entities/              # MultiPlayerGame, PlayerSession
+│   │   └── value_objects/         # MultiPlayerGameState
+│   ├── application/
+│   │   ├── ports/                 # MultiPlayerGameRepository
+│   │   ├── use-cases/             # CreateMultiPlayerGame, JoinMultiPlayerGame,
+│   │   │                          # StartMultiPlayerGame, MakeGuessInMultiPlayerGame,
+│   │   │                          # GetMultiPlayerGameStatus
+│   │   ├── dto/                   # MultiPlayerGameDTO, PlayerSessionDTO
+│   │   └── mappers/               # MultiPlayerGameMapper
+│   └── infrastructure/output/     # FileSystem, MySQL, LocalStorage repos
+│
 ├── trivia/                        # Módulo: Trivia (lógica del acertijo)
 │   ├── domain/
 │   │   ├── entities/              # Trivia
@@ -57,7 +70,7 @@ src/
 
 | Capa | Responsabilidad |
 |---|---|
-| **Dominio** | Entidades (`Trivia`, `Player`, `SinglePlayerGame`), Value Objects (`SecretNumber`, `Guess`, `GuessResult`, `Nickname`, `GameState`) y reglas de negocio. Sin dependencias externas. |
+| **Dominio** | Entidades (`Trivia`, `Player`, `SinglePlayerGame`, `MultiPlayerGame`, `PlayerSession`), Value Objects (`SecretNumber`, `Guess`, `GuessResult`, `Nickname`, `GameState`, `MultiPlayerGameState`) y reglas de negocio. Sin dependencias externas. |
 | **Aplicación** | Casos de uso, DTOs, mappers y **puertos** (interfaces). Orquesta la lógica de dominio. |
 | **Infraestructura** | **Adaptadores de entrada** (Express, Consola, Browser) y **adaptadores de salida** (FileSystem, MySQL, LocalStorage). Implementan los puertos. |
 
@@ -66,6 +79,7 @@ src/
 | Puerto | Métodos |
 |---|---|
 | `SinglePlayerGameRepository` | `save()`, `findById()`, `findAll()` |
+| `MultiPlayerGameRepository` | `save()`, `findById()`, `findAll()` |
 | `TriviaRepository` | `save()`, `findById()` |
 | `IPlayerRepository` | `save()`, `findById()`, `findByNickname()` |
 | `IdProvider` | `generate()` |
@@ -239,6 +253,79 @@ Base URL: `http://localhost:3000`
   }
 ]
 ```
+
+### Endpoints Multijugador
+
+#### `POST /multiplayer` — Crear partida multijugador
+
+```json
+// Request
+{ "nickname": "host_player", "maxPlayers": 4 }
+
+// Response 201
+{
+  "id": "uuid",
+  "hostPlayerId": "uuid",
+  "maxPlayers": 4,
+  "state": "WAITING",
+  "winnerId": null,
+  "winnerNickname": null,
+  "players": [
+    {
+      "playerId": "uuid",
+      "playerNickname": "host_player",
+      "triviaId": "uuid",
+      "guesses": [],
+      "finished": false,
+      "score": null,
+      "joinedAt": "2026-04-21T..."
+    }
+  ],
+  "createdAt": "2026-04-21T...",
+  "updatedAt": "2026-04-21T..."
+}
+```
+
+#### `POST /multiplayer/:gameId/join` — Unirse a partida
+
+```json
+// Request
+{ "nickname": "jugador2" }
+
+// Response 200 — Mismo formato que crear partida, con el nuevo jugador incluido
+```
+
+#### `POST /multiplayer/:gameId/start` — Iniciar partida (solo host)
+
+```json
+// Request
+{ "playerId": "uuid-del-host" }
+
+// Response 200 — Estado cambia a "PLAYING"
+```
+
+#### `POST /multiplayer/:gameId/guesses` — Hacer un intento
+
+```json
+// Request
+{ "playerId": "uuid-del-jugador", "guess": "1234" }
+
+// Response 200 — Estado de la partida con los intentos de todos los jugadores
+```
+
+#### `GET /multiplayer/:gameId` — Consultar estado de la partida
+
+```json
+// Response 200 — Mismo formato que crear partida
+```
+
+#### Flujo Multijugador
+
+1. Un jugador crea la partida (`POST /multiplayer`) y se convierte en host.
+2. Otros jugadores se unen (`POST /multiplayer/:gameId/join`) mientras el estado es `WAITING`.
+3. El host inicia la partida (`POST /multiplayer/:gameId/start`). Se necesitan mínimo 2 jugadores.
+4. Todos los jugadores adivinan el mismo número secreto de forma independiente (`POST /multiplayer/:gameId/guesses`).
+5. El primer jugador en adivinar gana y la partida pasa a `FINISHED`.
 
 ---
 
