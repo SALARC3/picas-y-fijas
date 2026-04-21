@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multijugador - Picas y Fijas</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 1.5rem 0;
+        }
+        .container { width: 100%; max-width: 520px; padding: 0 1.5rem; }
+        h1 { text-align: center; font-size: 2rem; margin-bottom: 0.5rem; color: #38bdf8; }
+        .subtitle { text-align: center; color: #94a3b8; margin-bottom: 1.5rem; font-size: 0.9rem; }
+        .nav { text-align: center; margin-bottom: 1.5rem; }
+        .nav a { color: #38bdf8; text-decoration: none; font-weight: 600; margin: 0 0.5rem; }
+        .card { background: #1e293b; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+        label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.4rem; }
+        input, select {
+            width: 100%; padding: 0.7rem 1rem; border: 2px solid #334155; border-radius: 8px;
+            background: #0f172a; color: #e2e8f0; font-size: 1rem; outline: none; transition: border-color 0.2s;
+        }
+        input:focus, select:focus { border-color: #38bdf8; }
+        input::placeholder { color: #475569; }
+        select option { background: #0f172a; }
+        button {
+            width: 100%; padding: 0.75rem; border: none; border-radius: 8px;
+            font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 0.8rem;
+        }
+        .btn-primary { background: #38bdf8; color: #0f172a; }
+        .btn-primary:hover { background: #7dd3fc; }
+        .btn-primary:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+        .btn-secondary { background: #334155; color: #e2e8f0; }
+        .btn-secondary:hover { background: #475569; }
+        .btn-success { background: #22c55e; color: #0f172a; }
+        .btn-success:hover { background: #4ade80; }
+        .error { color: #f87171; font-size: 0.85rem; margin-top: 0.5rem; text-align: center; }
+        .hidden { display: none; }
+        .game-code {
+            text-align: center; font-family: 'Courier New', monospace; font-size: 1.1rem;
+            font-weight: 700; color: #fde047; background: #854d0e; padding: 0.6rem 1rem;
+            border-radius: 8px; margin-bottom: 1rem; word-break: break-all; cursor: pointer;
+        }
+        .game-code:hover { background: #a16207; }
+        .game-code small { display: block; font-size: 0.7rem; color: #fef9c3; font-weight: 400; margin-top: 0.2rem; }
+        .player-list { margin-bottom: 1rem; }
+        .player-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.6rem 0.8rem; border-radius: 8px; margin-bottom: 0.4rem; background: #0f172a;
+        }
+        .player-nick { font-weight: 600; }
+        .player-nick.host::after { content: ' 👑'; }
+        .player-status { font-size: 0.8rem; color: #94a3b8; }
+        .player-status.finished { color: #4ade80; }
+        .guess-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.6rem 0.8rem; border-radius: 8px; margin-bottom: 0.4rem; background: #0f172a;
+        }
+        .guess-number { font-family: 'Courier New', monospace; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.3rem; }
+        .guess-result { display: flex; gap: 0.8rem; }
+        .picas, .fijas { font-size: 0.85rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 6px; }
+        .picas { background: #854d0e; color: #fde047; }
+        .fijas { background: #166534; color: #4ade80; }
+        .digit-inputs { display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 0.5rem; }
+        .digit-input {
+            width: 3.5rem; height: 3.5rem; text-align: center; font-size: 1.5rem;
+            font-weight: 700; font-family: 'Courier New', monospace; padding: 0;
+        }
+        .win-banner {
+            text-align: center; padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem;
+        }
+        .win-banner.won { background: linear-gradient(135deg, #166534, #15803d); }
+        .win-banner.won h2 { color: #4ade80; margin-bottom: 0.5rem; }
+        .win-banner.won p { color: #bbf7d0; }
+        .win-banner.lost { background: linear-gradient(135deg, #7f1d1d, #991b1b); }
+        .win-banner.lost h2 { color: #fca5a5; margin-bottom: 0.5rem; }
+        .win-banner.lost p { color: #fecaca; }
+        .tab-bar { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .tab-bar button { flex: 1; margin-top: 0; }
+        .tab-bar button.active { background: #38bdf8; color: #0f172a; }
+        .section-title { font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.5rem; font-weight: 600; }
+        .input-row { display: flex; gap: 0.5rem; margin-bottom: 0.4rem; }
+        .input-row input { flex: 1; }
+        .input-row select { width: 5rem; flex: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Multijugador</h1>
+        <p class="subtitle">Picas y Fijas — Compite contra otros jugadores</p>
+        <div class="nav">
+            <a href="index.html">🎯 Un jugador</a>
+            <a href="ranking.html">🏆 Ranking</a>
+        </div>
+
+        <!-- Pantalla de menú -->
+        <div id="menu-screen">
+            <div class="card">
+                <label for="nickname">Nickname</label>
+                <input type="text" id="nickname" placeholder="Ingresa tu nickname" maxlength="20" autofocus>
+            </div>
+            <div class="tab-bar">
+                <button class="btn-secondary active" id="tab-create">Crear sala</button>
+                <button class="btn-secondary" id="tab-join">Unirse a sala</button>
+            </div>
+
+            <!-- Crear sala -->
+            <div id="create-panel" class="card">
+                <label for="max-players">Máximo de jugadores</label>
+                <select id="max-players">
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4" selected>4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                </select>
+                <div id="create-error" class="error hidden"></div>
+                <button id="create-btn" class="btn-primary">Crear partida</button>
+            </div>
+
+            <!-- Unirse a sala -->
+            <div id="join-panel" class="card hidden">
+                <label for="game-code">Código de la partida</label>
+                <input type="text" id="game-code" placeholder="Pega el ID de la partida">
+                <div id="join-error" class="error hidden"></div>
+                <button id="join-btn" class="btn-primary">Unirse</button>
+            </div>
+        </div>
+
+        <!-- Pantalla de lobby -->
+        <div id="lobby-screen" class="hidden">
+            <div class="game-code" id="lobby-code" title="Click para copiar">
+                <small>Comparte este código con tus amigos (click para copiar)</small>
+            </div>
+            <div class="card">
+                <p class="section-title">Jugadores</p>
+                <div class="player-list" id="lobby-players"></div>
+                <div id="lobby-error" class="error hidden"></div>
+                <button id="start-game-btn" class="btn-success hidden">Iniciar partida</button>
+                <p id="lobby-wait" class="subtitle" style="margin:0.8rem 0 0">Esperando al host para iniciar...</p>
+            </div>
+            <button id="lobby-refresh" class="btn-secondary">Actualizar sala</button>
+        </div>
+
+        <!-- Pantalla de juego -->
+        <div id="game-screen" class="hidden">
+            <div id="game-banner" class="win-banner hidden"></div>
+
+            <div class="card" id="guess-form-card">
+                <label>Tu intento</label>
+                <div class="digit-inputs">
+                    <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="0">
+                    <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="1">
+                    <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="2">
+                    <input type="text" class="digit-input" maxlength="1" inputmode="numeric" data-index="3">
+                </div>
+                <div id="guess-error" class="error hidden"></div>
+                <button id="guess-btn" class="btn-primary">Adivinar</button>
+            </div>
+
+            <p class="section-title">Mis intentos</p>
+            <div id="my-guesses" style="max-height:200px;overflow-y:auto;margin-bottom:1rem"></div>
+
+            <p class="section-title">Jugadores</p>
+            <div class="player-list" id="game-players"></div>
+
+            <button id="game-refresh" class="btn-secondary" style="margin-top:0.5rem">Actualizar estado</button>
+            <button id="back-menu-btn" class="btn-secondary hidden" style="margin-top:0.5rem">Volver al menú</button>
+        </div>
+    </div>
+
+    <script>
+        const API = 'http://localhost:3000';
+        let gameId = null;
+        let playerId = null;
+        let isHost = false;
+        let pollTimer = null;
+
+        const $ = (s) => document.querySelector(s);
+        const $$ = (s) => document.querySelectorAll(s);
+
+        // --- Tabs ---
+        $('#tab-create').addEventListener('click', () => {
+            $('#tab-create').classList.add('active');
+            $('#tab-join').classList.remove('active');
+            $('#create-panel').classList.remove('hidden');
+            $('#join-panel').classList.add('hidden');
+        });
+        $('#tab-join').addEventListener('click', () => {
+            $('#tab-join').classList.add('active');
+            $('#tab-create').classList.remove('active');
+            $('#join-panel').classList.remove('hidden');
+            $('#create-panel').classList.add('hidden');
+        });
+
+        // --- Digit inputs ---
+        const digitInputs = $$('.digit-input');
+        digitInputs.forEach((input, i) => {
+            input.addEventListener('input', () => {
+                input.value = input.value.replace(/[^0-9]/g, '');
+                if (input.value && i < 3) digitInputs[i + 1].focus();
+            });
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !input.value && i > 0) digitInputs[i - 1].focus();
+                if (e.key === 'Enter') submitGuess();
+            });
+        });
+
+        function getGuessValue() { return Array.from(digitInputs).map(i => i.value).join(''); }
+        function clearDigits() { digitInputs.forEach(i => { i.value = ''; }); digitInputs[0].focus(); }
+
+        function showError(id, msg) {
+            const el = $(id);
+            el.textContent = msg;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 4000);
+        }
+
+        async function apiPost(path, body) {
+            const res = await fetch(`${API}${path}`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Error del servidor');
+            return data;
+        }
+
+        async function apiGet(path) {
+            const res = await fetch(`${API}${path}`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Error del servidor');
+            return data;
+        }
+
+        function getNickname() {
+            const v = $('#nickname').value.trim();
+            if (!v) throw new Error('Ingresa un nickname.');
+            return v;
+        }
+
+        function showScreen(id) {
+            ['#menu-screen', '#lobby-screen', '#game-screen'].forEach(s => $(s).classList.add('hidden'));
+            $(id).classList.remove('hidden');
+        }
+
+        function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+
+        // --- Crear partida ---
+        $('#create-btn').addEventListener('click', async () => {
+            try {
+                const nickname = getNickname();
+                const maxPlayers = parseInt($('#max-players').value);
+                $('#create-btn').disabled = true;
+                const data = await apiPost('/multiplayer', { nickname, maxPlayers });
+                gameId = data.id;
+                playerId = data.hostPlayerId;
+                isHost = true;
+                showLobby(data);
+            } catch (err) {
+                showError('#create-error', err.message);
+            } finally {
+                $('#create-btn').disabled = false;
+            }
+        });
+
+        // --- Unirse a partida ---
+        $('#join-btn').addEventListener('click', async () => {
+            try {
+                const nickname = getNickname();
+                const code = $('#game-code').value.trim();
+                if (!code) throw new Error('Ingresa el código de la partida.');
+                $('#join-btn').disabled = true;
+                const data = await apiPost(`/multiplayer/${code}/join`, { nickname });
+                gameId = data.id;
+                const me = data.players.find(p => p.playerNickname === nickname);
+                playerId = me ? me.playerId : data.players[data.players.length - 1].playerId;
+                isHost = data.hostPlayerId === playerId;
+                showLobby(data);
+            } catch (err) {
+                showError('#join-error', err.message);
+            } finally {
+                $('#join-btn').disabled = false;
+            }
+        });
+
+        // --- Lobby ---
+        function showLobby(data) {
+            showScreen('#lobby-screen');
+            const codeEl = $('#lobby-code');
+            codeEl.textContent = data.id;
+            codeEl.innerHTML += '<small>Comparte este código con tus amigos (click para copiar)</small>';
+            codeEl.onclick = () => {
+                navigator.clipboard.writeText(data.id);
+                codeEl.innerHTML = '¡Copiado!<small>Comparte este código con tus amigos</small>';
+                setTimeout(() => {
+                    codeEl.textContent = data.id;
+                    codeEl.innerHTML += '<small>Comparte este código con tus amigos (click para copiar)</small>';
+                }, 1500);
+            };
+
+            if (isHost) {
+                $('#start-game-btn').classList.remove('hidden');
+                $('#lobby-wait').classList.add('hidden');
+            } else {
+                $('#start-game-btn').classList.add('hidden');
+                $('#lobby-wait').classList.remove('hidden');
+            }
+
+            renderLobbyPlayers(data);
+            stopPolling();
+            pollTimer = setInterval(pollLobby, 3000);
+        }
+
+        function renderLobbyPlayers(data) {
+            $('#lobby-players').innerHTML = data.players.map(p => `
+                <div class="player-item">
+                    <span class="player-nick${p.playerId === data.hostPlayerId ? ' host' : ''}">${p.playerNickname}</span>
+                    <span class="player-status">Listo</span>
+                </div>
+            `).join('');
+        }
+
+        async function pollLobby() {
+            try {
+                const data = await apiGet(`/multiplayer/${gameId}`);
+                renderLobbyPlayers(data);
+                if (data.state === 'PLAYING') {
+                    stopPolling();
+                    showGameScreen(data);
+                }
+            } catch (err) { /* silencioso */ }
+        }
+
+        $('#lobby-refresh').addEventListener('click', pollLobby);
+
+        // --- Start game (host) ---
+        $('#start-game-btn').addEventListener('click', async () => {
+            try {
+                $('#start-game-btn').disabled = true;
+                const data = await apiPost(`/multiplayer/${gameId}/start`, { playerId });
+                stopPolling();
+                showGameScreen(data);
+            } catch (err) {
+                showError('#lobby-error', err.message);
+            } finally {
+                $('#start-game-btn').disabled = false;
+            }
+        });
+
+        // --- Game screen ---
+        function showGameScreen(data) {
+            showScreen('#game-screen');
+            $('#game-banner').classList.add('hidden');
+            $('#guess-form-card').classList.remove('hidden');
+            $('#back-menu-btn').classList.add('hidden');
+            renderGameState(data);
+            clearDigits();
+            stopPolling();
+            pollTimer = setInterval(pollGame, 3000);
+        }
+
+        function renderGameState(data) {
+            const me = data.players.find(p => p.playerId === playerId);
+
+            // Mis intentos
+            if (me) {
+                const guesses = me.guesses || [];
+                $('#my-guesses').innerHTML = guesses.slice().reverse().map(g => `
+                    <div class="guess-item">
+                        <span class="guess-number">${g.guess}</span>
+                        <div class="guess-result">
+                            <span class="picas">P ${g.picas}</span>
+                            <span class="fijas">F ${g.fijas}</span>
+                        </div>
+                    </div>
+                `).join('') || '<p style="color:#64748b;font-size:0.85rem;padding:0.5rem">Sin intentos aún</p>';
+            }
+
+            // Lista de jugadores
+            $('#game-players').innerHTML = data.players.map(p => {
+                const guessCount = (p.guesses || []).length;
+                const isMeTag = p.playerId === playerId ? ' (tú)' : '';
+                const statusClass = p.finished ? 'finished' : '';
+                const statusText = p.finished ? `✅ Adivinó en ${guessCount}` : `${guessCount} intentos`;
+                return `
+                    <div class="player-item">
+                        <span class="player-nick${p.playerId === data.hostPlayerId ? ' host' : ''}">${p.playerNickname}${isMeTag}</span>
+                        <span class="player-status ${statusClass}">${statusText}</span>
+                    </div>
+                `;
+            }).join('');
+
+            // Partida terminada
+            if (data.state === 'FINISHED') {
+                stopPolling();
+                const banner = $('#game-banner');
+                banner.classList.remove('hidden', 'won', 'lost');
+                if (data.winnerId === playerId) {
+                    banner.classList.add('won');
+                    banner.innerHTML = `<h2>🎉 ¡Ganaste!</h2><p>Felicidades, adivinaste primero.</p>`;
+                } else {
+                    banner.classList.add('lost');
+                    banner.innerHTML = `<h2>😔 Partida terminada</h2><p>${data.winnerNickname || 'Alguien'} adivinó primero.</p>`;
+                }
+                $('#guess-form-card').classList.add('hidden');
+                $('#back-menu-btn').classList.remove('hidden');
+            }
+
+            // Si yo ya terminé mi trivia pero la partida sigue
+            if (me && me.finished && data.state === 'PLAYING') {
+                $('#guess-form-card').classList.add('hidden');
+            }
+        }
+
+        async function pollGame() {
+            try {
+                const data = await apiGet(`/multiplayer/${gameId}`);
+                renderGameState(data);
+            } catch (err) { /* silencioso */ }
+        }
+
+        $('#game-refresh').addEventListener('click', pollGame);
+
+        // --- Submit guess ---
+        $('#guess-btn').addEventListener('click', submitGuess);
+        async function submitGuess() {
+            const guess = getGuessValue();
+            if (guess.length < 4) { showError('#guess-error', 'Completa los 4 dígitos.'); return; }
+            $('#guess-btn').disabled = true;
+            try {
+                const data = await apiPost(`/multiplayer/${gameId}/guesses`, { playerId, guess });
+                renderGameState(data);
+                clearDigits();
+            } catch (err) {
+                showError('#guess-error', err.message);
+            } finally {
+                $('#guess-btn').disabled = false;
+            }
+        }
+
+        // --- Back to menu ---
+        $('#back-menu-btn').addEventListener('click', () => {
+            stopPolling();
+            gameId = null;
+            playerId = null;
+            isHost = false;
+            showScreen('#menu-screen');
+        });
+
+        // --- Enter key on inputs ---
+        $('#nickname').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                if (!$('#create-panel').classList.contains('hidden')) $('#create-btn').click();
+                else $('#join-btn').click();
+            }
+        });
+        $('#game-code').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') $('#join-btn').click();
+        });
+    </script>
+</body>
+</html>
